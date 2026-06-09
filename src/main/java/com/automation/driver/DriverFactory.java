@@ -15,7 +15,7 @@ public class DriverFactory {
         options.setPlatformName("Android");
         options.setAutomationName("UiAutomator2");
         options.setDeviceName("emulator-5554");
-        options.setApp(System.getProperty("user.dir") + "/src/main/resources/app/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk");
+        options.setApp(System.getProperty("user.dir") + "/src/test/resources/app/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk");
         options.setAppWaitActivity("*");
 
         return new AndroidDriver(
