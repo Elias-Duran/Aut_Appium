@@ -19,7 +19,7 @@ public class LoginPage extends BasePage {
         return waitForElementVisible(pass);
     }
 
-    public WebElement btnIngresarElement() {
+    public WebElement clickIngresar() {
         return waitForElementClickable(btnIngresar);
     }
     public void ingresarUsuario(String usuario) {
