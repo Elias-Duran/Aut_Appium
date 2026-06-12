@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Suite Appium">
+    <test name="Login Test">
+        <classes>
+            <class name="Proyectos.Login"/>
+        </classes>
+    </test>
+</suite>
