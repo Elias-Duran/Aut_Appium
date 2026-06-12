@@ -12,6 +12,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <selenium.version>4.19.1</selenium.version>
     </properties>
 
     <dependencies>
@@ -20,6 +21,12 @@
             <groupId>io.appium</groupId>
             <artifactId>java-client</artifactId>
             <version>9.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>${selenium.version}</version>
         </dependency>
 
         <dependency>
