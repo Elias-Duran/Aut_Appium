@@ -7,17 +7,17 @@ public class DriverContext {
     private static AndroidDriver driver;
 
     public static void setDriver(AndroidDriver androidDriver) {
-        driver = androidDriver;
+        DriverContext.driver = androidDriver;
     }
 
     public static AndroidDriver getDriver() {
-        return driver;
+        return DriverContext.driver;
     }
 
     public static void quitDriver() {
-        if (driver != null) {
-            driver.quit();
-            driver = null;
+        if (DriverContext.driver != null) {
+            DriverContext.driver.quit();
+            DriverContext.driver = null;
         }
     }
 }
