@@ -9,7 +9,6 @@ pipeline {
 
     environment {
         APPIUM_SERVER_URL = 'http://127.0.0.1:4723'
-        ANDROID_DEVICE_NAME = 'emulator-5554'
         APP_PATH = "${WORKSPACE}/src/test/resources/app/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk"
         APK_URL = 'https://github.com/saucelabs/sample-app-mobile/releases/download/2.7.1/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk'
         APPIUM_LOG = "${WORKSPACE}/target/appium.log"
@@ -42,6 +41,8 @@ pipeline {
                     if [ ! -f "$APP_PATH" ]; then
                         echo "Descargando APK demo..."
                         curl -fsSL "$APK_URL" -o "$APP_PATH"
+                    else
+                        echo "APK ya existe."
                     fi
                 '''
             }
@@ -63,6 +64,7 @@ pipeline {
                     done
 
                     echo "Appium no respondió."
+                    cat target/appium-start.log || true
                     exit 1
                 '''
             }
@@ -93,3 +95,4 @@ pipeline {
             '''
         }
     }
+}
