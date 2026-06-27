@@ -19,8 +19,8 @@ public class LoginPage extends BasePage {
         return waitForElementVisible(pass);
     }
 
-    public WebElement clickIngresar() {
-        return waitForElementClickable(btnIngresar);
+    public void clickIngresar() {
+        click(btnIngresar);
     }
     public void ingresarUsuario(String usuario) {
         rutElement().sendKeys(usuario);

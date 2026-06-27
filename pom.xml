@@ -123,7 +123,7 @@
                 <configuration>
                     <suiteXmlFiles>
                         <suiteXmlFile>
-                            src/test/resources/testng.xml
+                            src/test/resources/app/testng.xml
                         </suiteXmlFile>
                     </suiteXmlFiles>
                 </configuration>
