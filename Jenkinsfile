@@ -9,11 +9,15 @@ pipeline {
     }
 
     environment {
+        HOME = '/home/elias'
+        ANDROID_AVD_HOME = '/home/elias/.android/avd'
+
         ANDROID_HOME = '/usr/lib/android-sdk'
         ANDROID_SDK_ROOT = '/usr/lib/android-sdk'
         PATH = "/usr/lib/android-sdk/platform-tools:/usr/lib/android-sdk/emulator:/usr/lib/android-sdk/cmdline-tools/latest/bin:/usr/lib/android-sdk/build-tools/35.0.0:${env.PATH}"
 
         APPIUM_SERVER_URL = 'http://127.0.0.1:4723'
+
         APP_PATH = "${WORKSPACE}/src/test/resources/app/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk"
         APK_URL = 'https://github.com/saucelabs/sample-app-mobile/releases/download/2.7.1/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk'
 
@@ -45,17 +49,22 @@ pipeline {
                     adb version
                     emulator -version
 
+                    echo "HOME=$HOME"
                     echo "ANDROID_HOME=$ANDROID_HOME"
                     echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+                    echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME"
 
                     find "$ANDROID_HOME/build-tools" -name aapt2 || true
+
+                    echo "AVD disponibles:"
                     emulator -list-avds
-                    appium driver list --installed
 
                     if ! emulator -list-avds | grep -Fxq "$AVD_NAME"; then
-                        echo "ERROR: El AVD '$AVD_NAME' no existe."
+                        echo "ERROR: El AVD '$AVD_NAME' no existe o Jenkins no puede leerlo."
                         exit 1
                     fi
+
+                    appium driver list --installed
                 '''
             }
         }
@@ -80,9 +89,7 @@ pipeline {
                     if [ ! -s "$APP_PATH" ]; then
                         echo "Descargando APK demo..."
                         rm -f "${APP_PATH}.tmp"
-
                         curl --fail --show-error --location "$APK_URL" --output "${APP_PATH}.tmp"
-
                         mv "${APP_PATH}.tmp" "$APP_PATH"
                     else
                         echo "La APK ya existe."
@@ -118,6 +125,8 @@ pipeline {
                         echo "KVM no disponible para Jenkins. Usando -accel off."
                         ACCELERATION_ARGUMENT="-accel off"
                     fi
+
+                    echo "Iniciando emulador $AVD_NAME..."
 
                     JENKINS_NODE_COOKIE=dontKillMe \
                     nohup emulator \
@@ -350,5 +359,3 @@ pipeline {
         failure {
             echo '❌ El pipeline falló. Revisa los logs archivados.'
         }
-    }
-}
