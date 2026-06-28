@@ -11,13 +11,10 @@ pipeline {
     environment {
         ANDROID_HOME = '/usr/lib/android-sdk'
         ANDROID_SDK_ROOT = '/usr/lib/android-sdk'
-
-        PATH+ANDROID = '/usr/lib/android-sdk/platform-tools:/usr/lib/android-sdk/emulator:/usr/lib/android-sdk/cmdline-tools/latest/bin:/usr/lib/android-sdk/build-tools/35.0.0'
+        PATH = "/usr/lib/android-sdk/platform-tools:/usr/lib/android-sdk/emulator:/usr/lib/android-sdk/cmdline-tools/latest/bin:/usr/lib/android-sdk/build-tools/35.0.0:${env.PATH}"
 
         APPIUM_SERVER_URL = 'http://127.0.0.1:4723'
-
         APP_PATH = "${WORKSPACE}/src/test/resources/app/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk"
-
         APK_URL = 'https://github.com/saucelabs/sample-app-mobile/releases/download/2.7.1/Android.SauceLabs.Mobile.Sample.app.2.7.1.apk'
 
         APPIUM_LOG = "${WORKSPACE}/target/appium.log"
@@ -29,7 +26,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -41,44 +37,25 @@ pipeline {
                 sh '''
                     set -eu
 
-                    echo "===== Java ====="
                     java -version
-
-                    echo "===== Maven ====="
                     mvn -version
-
-                    echo "===== Node.js ====="
                     node -v
-
-                    echo "===== NPM ====="
                     npm -v
-
-                    echo "===== Appium ====="
                     appium -v
-
-                    echo "===== ADB ====="
                     adb version
-
-                    echo "===== Android Emulator ====="
                     emulator -version
 
-                    echo "===== Curl ====="
-                    curl --version
-
-                    echo "===== Variables Android ====="
                     echo "ANDROID_HOME=$ANDROID_HOME"
                     echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
-                    echo "===== AVD disponibles ====="
+                    find "$ANDROID_HOME/build-tools" -name aapt2 || true
                     emulator -list-avds
+                    appium driver list --installed
 
                     if ! emulator -list-avds | grep -Fxq "$AVD_NAME"; then
-                        echo "ERROR: El AVD '$AVD_NAME' no existe para el usuario de Jenkins."
+                        echo "ERROR: El AVD '$AVD_NAME' no existe."
                         exit 1
                     fi
-
-                    echo "===== Drivers Appium instalados ====="
-                    appium driver list --installed
                 '''
             }
         }
@@ -87,10 +64,7 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-
-                    echo "Limpiando compilaciones anteriores..."
                     mvn clean -B
-
                     mkdir -p target
                 '''
             }
@@ -105,19 +79,11 @@ pipeline {
 
                     if [ ! -s "$APP_PATH" ]; then
                         echo "Descargando APK demo..."
-
                         rm -f "${APP_PATH}.tmp"
 
-                        curl \
-                            --fail \
-                            --show-error \
-                            --location \
-                            "$APK_URL" \
-                            --output "${APP_PATH}.tmp"
+                        curl --fail --show-error --location "$APK_URL" --output "${APP_PATH}.tmp"
 
                         mv "${APP_PATH}.tmp" "$APP_PATH"
-
-                        echo "APK descargada correctamente."
                     else
                         echo "La APK ya existe."
                     fi
@@ -134,8 +100,6 @@ pipeline {
 
                     mkdir -p target
 
-                    echo "Deteniendo una instancia anterior del emulador..."
-
                     if adb devices | grep -q "^${DEVICE_SERIAL}[[:space:]]"; then
                         adb -s "$DEVICE_SERIAL" emu kill || true
                         sleep 5
@@ -149,14 +113,11 @@ pipeline {
                     ACCELERATION_ARGUMENT=""
 
                     if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
-                        echo "Aceleración KVM disponible."
+                        echo "KVM disponible."
                     else
-                        echo "KVM no disponible para Jenkins."
-                        echo "El emulador usará aceleración por software."
+                        echo "KVM no disponible para Jenkins. Usando -accel off."
                         ACCELERATION_ARGUMENT="-accel off"
                     fi
-
-                    echo "Iniciando emulador $AVD_NAME..."
 
                     JENKINS_NODE_COOKIE=dontKillMe \
                     nohup emulator \
@@ -175,20 +136,16 @@ pipeline {
                     EMULATOR_PID=$!
                     echo "$EMULATOR_PID" > target/emulator.pid
 
-                    echo "PID del emulador: $EMULATOR_PID"
-                    echo "Esperando que ADB detecte $DEVICE_SERIAL..."
-
                     DEVICE_FOUND=false
 
                     for i in $(seq 1 180); do
                         if adb devices | grep -q "^${DEVICE_SERIAL}[[:space:]]"; then
-                            echo "ADB detectó el emulador."
                             DEVICE_FOUND=true
                             break
                         fi
 
                         if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
-                            echo "El proceso del emulador terminó inesperadamente."
+                            echo "El emulador terminó inesperadamente."
                             cat "$EMULATOR_LOG" || true
                             exit 1
                         fi
@@ -204,20 +161,12 @@ pipeline {
                         exit 1
                     fi
 
-                    echo "Esperando que Android termine de iniciar..."
-
                     BOOT_COMPLETED=false
 
                     for i in $(seq 1 180); do
-                        boot_completed=$(
-                            adb -s "$DEVICE_SERIAL" \
-                                shell getprop sys.boot_completed \
-                                2>/dev/null |
-                                tr -d '\\r'
-                        )
+                        boot_completed=$(adb -s "$DEVICE_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r')
 
                         if [ "$boot_completed" = "1" ]; then
-                            echo "Android inició correctamente."
                             BOOT_COMPLETED=true
                             break
                         fi
@@ -239,19 +188,12 @@ pipeline {
                         exit 1
                     fi
 
-                    echo "Desbloqueando dispositivo..."
                     adb -s "$DEVICE_SERIAL" shell input keyevent 82 || true
-
-                    echo "Desactivando animaciones..."
                     adb -s "$DEVICE_SERIAL" shell settings put global window_animation_scale 0 || true
                     adb -s "$DEVICE_SERIAL" shell settings put global transition_animation_scale 0 || true
                     adb -s "$DEVICE_SERIAL" shell settings put global animator_duration_scale 0 || true
 
-                    echo "===== Dispositivo listo ====="
-                    adb devices
-                    adb -s "$DEVICE_SERIAL" shell getprop ro.product.model
-                    adb -s "$DEVICE_SERIAL" shell getprop ro.build.version.release
-                    adb -s "$DEVICE_SERIAL" shell getprop ro.build.version.sdk
+                    adb devices -l
                 '''
             }
         }
@@ -262,8 +204,6 @@ pipeline {
                     set -eu
 
                     mkdir -p target
-
-                    echo "Comprobando procesos anteriores de Appium..."
 
                     if [ -f target/appium.pid ]; then
                         OLD_APPIUM_PID=$(cat target/appium.pid)
@@ -279,8 +219,6 @@ pipeline {
                     pkill -f "appium.*4723" || true
                     sleep 2
 
-                    echo "Iniciando Appium..."
-
                     JENKINS_NODE_COOKIE=dontKillMe \
                     nohup appium \
                         --address 127.0.0.1 \
@@ -292,16 +230,11 @@ pipeline {
                     APPIUM_PID=$!
                     echo "$APPIUM_PID" > target/appium.pid
 
-                    echo "PID de Appium: $APPIUM_PID"
-                    echo "Esperando respuesta de Appium..."
-
                     for i in $(seq 1 60); do
                         if curl -fsS "${APPIUM_SERVER_URL}/status" > /dev/null 2>&1; then
                             echo "Appium está listo."
-
                             curl -fsS "${APPIUM_SERVER_URL}/status"
                             echo
-
                             exit 0
                         fi
 
@@ -329,26 +262,19 @@ pipeline {
                 sh '''
                     set -eu
 
-                    echo "===== Dispositivos conectados ====="
                     adb devices -l
 
                     if ! adb devices | grep -q "^${DEVICE_SERIAL}[[:space:]]*device$"; then
-                        echo "ERROR: $DEVICE_SERIAL no está listo para ejecutar pruebas."
+                        echo "ERROR: $DEVICE_SERIAL no está listo."
                         exit 1
                     fi
 
-                    boot_completed=$(
-                        adb -s "$DEVICE_SERIAL" \
-                            shell getprop sys.boot_completed |
-                            tr -d '\\r'
-                    )
+                    boot_completed=$(adb -s "$DEVICE_SERIAL" shell getprop sys.boot_completed | tr -d '\\r')
 
                     if [ "$boot_completed" != "1" ]; then
                         echo "ERROR: Android todavía no terminó de iniciar."
                         exit 1
                     fi
-
-                    echo "El dispositivo está listo."
                 '''
             }
         }
@@ -357,9 +283,6 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-
-                    echo "Ejecutando pruebas automatizadas..."
-
                     mvn test -B
                 '''
             }
@@ -367,16 +290,14 @@ pipeline {
     }
 
     post {
-
         always {
             sh '''
-                echo "===== Cerrando servicios ====="
+                echo "Cerrando servicios..."
 
                 if [ -f target/appium.pid ]; then
                     APPIUM_PID=$(cat target/appium.pid)
 
                     if kill -0 "$APPIUM_PID" 2>/dev/null; then
-                        echo "Cerrando Appium PID $APPIUM_PID..."
                         kill "$APPIUM_PID" 2>/dev/null || true
                         sleep 2
 
@@ -389,7 +310,6 @@ pipeline {
                 fi
 
                 if adb devices 2>/dev/null | grep -q "^${DEVICE_SERIAL}[[:space:]]"; then
-                    echo "Cerrando emulador $DEVICE_SERIAL..."
                     adb -s "$DEVICE_SERIAL" emu kill || true
                     sleep 5
                 fi
@@ -398,7 +318,6 @@ pipeline {
                     EMULATOR_PID=$(cat target/emulator.pid)
 
                     if kill -0 "$EMULATOR_PID" 2>/dev/null; then
-                        echo "Cerrando emulador PID $EMULATOR_PID..."
                         kill "$EMULATOR_PID" 2>/dev/null || true
                         sleep 2
 
@@ -411,8 +330,6 @@ pipeline {
                 fi
 
                 adb kill-server || true
-
-                echo "Limpieza terminada."
             '''
 
             junit(
@@ -431,7 +348,7 @@ pipeline {
         }
 
         failure {
-            echo '❌ El pipeline falló. Revisa los logs archivados de Appium, Maven y el emulador.'
+            echo '❌ El pipeline falló. Revisa los logs archivados.'
         }
     }
 }
