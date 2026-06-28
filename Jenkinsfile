@@ -85,7 +85,23 @@ pipeline {
                     echo $! > target/emulator.pid
 
                     echo "Esperando que ADB detecte el emulador..."
-                    adb wait-for-device
+                    for i in $(seq 1 60); do
+                        adb devices -l
+
+                        if adb devices | grep -q "emulator-5554"; then
+                            echo "ADB detectó el emulador."
+                            break
+                        fi
+
+                        echo "ADB aún no detecta emulador... intento $i/60"
+                        sleep 5
+                    done
+
+                    if ! adb devices | grep -q "emulator-5554"; then
+                        echo "ADB nunca detectó el emulador."
+                        cat "$EMULATOR_LOG" || true
+                        exit 1
+                    fi
 
                     echo "Esperando boot completo..."
                     for i in $(seq 1 60); do
